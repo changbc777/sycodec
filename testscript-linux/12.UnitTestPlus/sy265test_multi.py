@@ -10,15 +10,15 @@ def run_cmd(cmds):
 	curthread = curthread -1
 
 if __name__ == '__main__':
-	sycodepath = '' # code
-	videopath = '' # code
+	sycodepath = '/home/gsy/code/sycodec/' # code
+	videopath = '/home/gsy/data/yuv' # code
 	
 	x265path = 'x265' # result
 	sy265path = 'sy265' # result
 	
 	x265codec = 'encoder/x265' # encoder
-	sy265codec = 'encoder/sy265' # encoder
-	ffmpegcodec = 'encoder/ffmpeg' # encoder
+	sy265codec = '/home/gsy/code/sycodec/build/linux/x265' # encoder
+	ffmpegcodec = 'ffmpeg' # encoder
 
 	# param
 	video_class = ['6']
@@ -26,9 +26,9 @@ if __name__ == '__main__':
 	QP_NORMAL = [22, 27, 32, 37]
 	QP_HIGH = [32, 37, 42, 47]
 	QP = []
-	test_low_qp = 1
+	test_low_qp = 0
 	test_normal_qp = 1
-	test_high_qp = 1
+	test_high_qp = 0
 	sy265_param = '--preset fast --tune psnr --keyint 256 --bframes 15 --rc-lookahead 64 --frame-threads 8'
 	x265_param = '--preset fast --tune psnr --keyint 256 --bframes 15 --rc-lookahead 64 --frame-threads 8'
 	keyintSec = 0
@@ -54,7 +54,7 @@ if __name__ == '__main__':
 	tools_sy265.append('-aq 2')
 
 	# x265 tools
-	tools_x265.append('--preset veryslow --bframes 3 --rc-lookahead 16')
+	tools_x265.append('--preset veryslow')
 	
 	# export
 	# os.environ["LD_LIBRARY_PATH"] += ':' + sycodepath + '/WestLake/3rdparty/opencv-4.6.0/lib64'
@@ -74,10 +74,10 @@ if __name__ == '__main__':
 	print(QP)
 
 	# creat result dir
-	if not os.exists(x265path):
+	if not os.path.exists(x265path):
 		os.makedirs(x265path)
-	if not os.exists(sy265path):
-		os.makedirs(sy265_path)
+	if not os.path.exists(sy265path):
+		os.makedirs(sy265path)
 
 	# creat tools
 	with open('%s/tools' % (x265path), 'w') as f:
@@ -143,8 +143,7 @@ if __name__ == '__main__':
 			else:
 				inputyuv = '%s/%s.yuv' %(videopath, lines[0])
 			if(needfps):
-				cmd = '%s %s -threads 8 -i %s -r %s -y fps.yuv' \ 
-				%(ffmpegcodec, yuv_fmt, inputyuv, str(fpsto))
+				cmd = '%s %s -threads 8 -i %s -r %s -y fps.yuv' % (ffmpegcodec, yuv_fmt, inputyuv, str(fpsto))
 				print(cmd)
 				os.system(cmd)
 				inputyuv = 'fps.yuv'
@@ -156,21 +155,17 @@ if __name__ == '__main__':
 				for q in QP:
 					cmds = []
 					cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1'\
-						%(x265codec, inputyuv, str(width), str(height),  str(fps), keyint, x265_param, q, x265_path, lines[0], q, x265_path, lines[0], q)
+						%(x265codec, inputyuv, str(width), str(height),  str(fps), keyint, x265_param, q, x265path, lines[0], q, x265path, lines[0], q)
 					cmds.append(cmd)
-					cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' \ 
-					%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), x265_path, lines[0], q, x265_path, lines[0], q)
+					cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), x265path, lines[0], q, x265path, lines[0], q)
 					cmds.append(cmd)
 					if(testssim):
-						cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' \ 
-						%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), x265_path, lines[0], q, x265_path, lines[0], q)
+						cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), x265path, lines[0], q, x265path, lines[0], q)
 						cmds.append(cmd)
 					if(testvmafneg):
-						cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' \ 
-						%(ffmpegcodec, x265_path, lines[0], q)
+						cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' % (ffmpegcodec, x265path, lines[0], q)
 						cmds.append(cmd)
-						cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' \
-						%(inputyuv, str(width), str(height), x265_path, lines[0], str(q))
+						cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' %(inputyuv, str(width), str(height), x265path, lines[0], str(q))
 						cmds.append(cmd)
 					tasks.append(threading.Thread(target=run_cmd, args=(cmds,)))
 
@@ -181,26 +176,21 @@ if __name__ == '__main__':
 						toolline = toolline.replace('\n', '')
 						toolname = toolline.replace(' ', '_')
 						toolname = toolname.replace('-','')
-						toolpath = x265_path+'/'+toolname
+						toolpath = x265path+'/'+toolname
 						if not os.path.exists(toolpath):
 							os.makedirs(toolpath)
 						cmds=[]
-						cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d %s -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1'\
-						%(x265codec, inputyuv, str(width), str(height),  str(fps), keyint, x265_param, q, toolline, toolpath, lines[0], q, toolpath, lines[0], q)
+						cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d %s -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1'	%(x265codec, inputyuv, str(width), str(height),  str(fps), keyint, x265_param, q, toolline, toolpath, lines[0], q, toolpath, lines[0], q)
 						cmds.append(cmd)
-						cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' \ 
-						%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
+						cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
 						cmds.append(cmd)
 						if(testssim):
-							cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' \ 
-							%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
+							cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
 							cmds.append(cmd)
 						if(testvmafneg):
-							cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' \ 
-							%(ffmpegcodec, toolpath, lines[0], q)
+							cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' %(ffmpegcodec, toolpath, lines[0], q)
 							cmds.append(cmd)
-							cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' \
-							%(inputyuv, str(width), str(height), toolpath, lines[0], str(q))
+							cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' %(inputyuv, str(width), str(height), toolpath, lines[0], str(q))
 							cmds.append(cmd)
 						tasks.append(threading.Thread(target=run_cmd, args=(cmds,)))
 						toolline = toolfile.readline()
@@ -211,53 +201,43 @@ if __name__ == '__main__':
 			for q in QP:
 				if(testsy265anchor):
 					cmds = []
-					cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1'\
-						%(sy265codec, inputyuv, str(width), str(height),  str(fps), keyint, sy265_param, q, sy265_path, lines[0], q, sy265_path, lines[0], q)
+					cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1' %(sy265codec, inputyuv, str(width), str(height),  str(fps), keyint, sy265_param, q, sy265path, lines[0], q, sy265path, lines[0], q)
 					cmds.append(cmd)
-					cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' \ 
-					%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), sy265_path, lines[0], q, sy265_path, lines[0], q)
+					cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), sy265path, lines[0], q, sy265path, lines[0], q)
 					cmds.append(cmd)
 					if(testssim):
-						cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' \ 
-						%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), sy265_path, lines[0], q, sy265_path, lines[0], q)
+						cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), sy265path, lines[0], q, sy265path, lines[0], q)
 						cmds.append(cmd)
 					if(testvmafneg):
-						cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' \ 
-						%(ffmpegcodec, sy265_path, lines[0], q)
+						cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' %(ffmpegcodec, sy265path, lines[0], q)
 						cmds.append(cmd)
-						cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' \
-						%(inputyuv, str(width), str(height), sy265_path, lines[0], str(q))
+						cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' 	%(inputyuv, str(width), str(height), sy265path, lines[0], str(q))
 						cmds.append(cmd)
 					tasks.append(threading.Thread(target=run_cmd, args=(cmds,)))
 
 					# test sy265 for other tools
-					if(testsy265tools)
-						toolfile = open('%s/tools' % (sy265_path))
+					if(testsy265tools):
+						toolfile = open('%s/tools' % (sy265path))
 						toolline = toolfile.readline()
 						while toolline:
 							toolline = toolline.replace('\n', '')
 							toolname = toolline.replace(' ', '_')
 							toolname = toolname.replace('-','')
-							toolpath = sy265_path+'/'+toolname
+							toolpath = sy265path+'/'+toolname
 							if not os.path.exists(toolpath):
 								os.makedirs(toolpath)
 							cmds=[]
-							cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d %s -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1'\
-							%(sy265codec, inputyuv, str(width), str(height),  str(fps), keyint, sy265_param, q, toolline, toolpath, lines[0], q, toolpath, lines[0], q)
+							cmd = '%s --input %s --input-res %sx%s --fps %s --keyint %s %s --crf %d %s -o %s/%s_%d.265 > %s/%s_%d.txt 2>&1'	%(sy265codec, inputyuv, str(width), str(height),  str(fps), keyint, sy265_param, q, toolline, toolpath, lines[0], q, toolpath, lines[0], q)
 							cmds.append(cmd)
-							cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' \ 
-							%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
+							cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi psnr -f null - > %s/%s_%d_psnr.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
 							cmds.append(cmd)
 							if(testssim):
-								cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' \ 
-								%(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
+								cmd = '%s %s -threads 8 -i %s -r %s -threads 8 -i %s/%s_%d.265 -threads 8 -lavfi ssim -f null - > %s/%s_%d_ssim.txt 2>&1' %(ffmpegcodec, yuv_fmt, inputyuv, str(fps), toolpath, lines[0], q, toolpath, lines[0], q)
 								cmds.append(cmd)
 							if(testvmafneg):
-								cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' \ 
-								%(ffmpegcodec, toolpath, lines[0], q)
+								cmd = '%s -i %s/%s_%d.265 -pix_fmt yuv420p -y rec.yuv' %(ffmpegcodec, toolpath, lines[0], q)
 								cmds.append(cmd)
-								cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' \
-								%(inputyuv, str(width), str(height), toolpath, lines[0], str(q))
+								cmd = 'vmaf -d rec.yuv -r %s -b 8 -w %s -h %s -p 420 -m path=vmaf_v0.6.1neg.json --threads 8 -o %s/%s_%s_vmaf.txt' %(inputyuv, str(width), str(height), toolpath, lines[0], str(q))
 								cmds.append(cmd)
 							tasks.append(threading.Thread(target=run_cmd, args=(cmds,)))
 							toolline = toolfile.readline()
